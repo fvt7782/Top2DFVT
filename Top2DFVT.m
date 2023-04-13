@@ -1,4 +1,4 @@
-% TOPOLOGY OPTIMIZATION OF STRUCTURES BY ZEROTH ORDER FINITE-VOLUME THEORY
+% TOPOLOGY OPTIMIZATION OF STRUCTURES BY THE STANDARD FINITE-VOLUME THEORY
 function Top2DFVT(L,H,nx,ny,volfrac,penal,neig,ft,varargin)
 %______________________________________________________________USER-DEFINED
 P     = -1;                                                                % applied concentrated load
