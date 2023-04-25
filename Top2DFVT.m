@@ -72,9 +72,9 @@ for i = 1:length(penal(:))
         dvdx(:) = sens{2};
         %_________________UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
         xOpt = x;
-        [xUpp, xLow] = deal (xOpt + move, xOpt - move);              % Upp. & low. limits
-        OcC = xOpt.*((-dfdx./dvdx).^eta);                                 % Opt. parameter
-        inL = [0, mean(OcC)/volfrac];                                % Lag. Mul. range
+        [xUpp, xLow] = deal (xOpt + move, xOpt - move);                    % Upp. & low. limits
+        OcC = xOpt.*((-dfdx./dvdx).^eta);                                  % Opt. parameter
+        inL = [0, mean(OcC)/volfrac];                                      % Lag. Mul. range
         while (inL(2)-inL(1))/(inL(2)+inL(1))> 1e-3
             lmid = 0.5*(inL(2)+ inL(1));
             x = max(0,max(xLow,min(1,min(xUpp,OcC/lmid))));
