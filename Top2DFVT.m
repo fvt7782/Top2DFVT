@@ -1,5 +1,5 @@
 % TOPOLOGY OPTIMIZATION OF STRUCTURES BY ZEROTH ORDER FINITE-VOLUME THEORY
-function Top2DFVT1(L,H,nx,ny,volfrac,penal,neig,ft,varargin)
+function Top2DFVT(L,H,nx,ny,volfrac,penal,neig,ft,varargin)
 %______________________________________________________________USER-DEFINED
 P     = -1;                                                                % applied concentrated load
 E0    =  1;                                                                % Young's modulus of solid material
@@ -34,11 +34,10 @@ elseif (strcmp(varargin,'fast'))
         return
     end
     addpath(genpath('./fsparse'));                                         % set fsparse folder
-    F = fsparse(dof(nx*ny-nx+1,6)',1,P,[ndof,1]);                          % global surface-averaged force vector
+    F = fsparse(dof(nx*ny-nx+1,6)',1,P,[ndof,1]);                          % global force vector
     StiffnessAssemblage = @(sK) fsparse(iK(:),jK(:),sK(:),[ndof,ndof]);
 end
-%supp = unique([dof(1:nx:end-nx+1,7);dof(nx,2)]);
-supp = unique([dof(1:nx:end-nx+1,7);dof(nx,2)]);                      % fixed degrees of freedom - supporting conditions
+supp = unique([dof(1:nx:end-nx+1,7);dof(nx,2)]);                           % fixed degrees of freedom - supporting conditions
 fdof = setdiff(dof(:),supp(:));                                            % free degrees of freedom
 %_____IMPLICIT FUNCTIONS TO MODIFY THE SUBVOLUME SENSITIVITIES OR DENSITIES
 [H,Hs] = Filtering(l,h,nx,ny,neig);
@@ -61,9 +60,8 @@ for i = 1:length(penal(:))
         Mat = MatInt(penal(i),xPhys);                                      % material interpolation
         E = Mat{1}; dEdx = Mat{2};
         sK = K0(:)*E(:)';                                                  % stiffness interpolation
-        K = StiffnessAssemblage(sK); K=(K+K')/2;                                       % assemblage of stiffness matrix
-        %U(fdof) = decomposition(K(fdof,fdof),'chol','lower')\F(fdof);      % compute global displacements
-        U(fdof) = K(fdof,fdof)\F(fdof);
+        K = StiffnessAssemblage(sK); K=(K+K')/2;                           % assemblage of stiffness matrix
+        U(fdof) = K(fdof,fdof)\F(fdof);                                    % compute global displacements
         %________________________________________COMPLIENCE AND SENSITIVITY
         fe = reshape(sum((U(dof)*K0).*U(dof),2),nx,ny);
         f  = sum(sum(E.*fe));                                              % objective function: compliance
@@ -73,17 +71,6 @@ for i = 1:length(penal(:))
         dfdx(:) = sens{1};
         dvdx(:) = sens{2};
         %_________________UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
-        % l1 = 0; l2 = 1e5;                                                  % define initial values for bissection method
-        % while ((l2-l1)/(l1+l2) > 1e-4)
-        %     lmid = (l1+l2)/2;                                              % average lambda
-        %     beta = -dfdx./dvdx/lmid;                                       % density correction factor
-        %     xnew = max(0,max(x-move,min(1,min(x+move,x.*beta.^eta))));     % update design variable
-        %     xPhys(:) = density(xnew);
-        %     if (mean(xPhys(:)) > volfrac), l1 = lmid; else, l2 = lmid; end
-        % end
-        % xPhys = reshape(xPhys,size(x,1),size(x,2));
-        % change = max(abs(xnew(:)-x(:)));
-        % x = xnew;  
         xOpt = x;
         [xUpp, xLow] = deal (xOpt + move, xOpt - move);              % Upp. & low. limits
         OcC = xOpt.*((-dfdx./dvdx).^eta);                                 % Opt. parameter
