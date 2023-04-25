@@ -26,15 +26,15 @@ elseif (strcmp(model,'RAMP'))
 end
 %__________________________ASSEMBLY LOAD VECTOR AND GLOBAL STIFFNESS MATRIX
 if (isempty(varargin))
-    F = sparse(dof(nx*ny-nx+1,6)',1,P,ndof,1);                               % global surface-averaged force vector
+    F = sparse(dof(nx*ny-nx+1,6)',1,P,ndof,1);                             % global force vector (resultant forces on the subvolumes' faces)
     StiffnessAssemblage = @(sK) sparse(iK(:),jK(:),sK(:),ndof,ndof);
 elseif (strcmp(varargin,'fast'))
-    if ~exist("fsparse\")                                                  % logical testo to check if the fsparce folder is installed
-        warning('check if the fsparse is correctly set up');               % displyed message
+    if ~exist("fsparse\")                                                  % logical test to check if the fsparse folder is installed
+        warning('check if the fsparse is correctly set up');               % display message
         return
     end
     addpath(genpath('./fsparse'));                                         % set fsparse folder
-    F = fsparse(dof(nx*ny-nx+1,6)',1,P,[ndof,1]);                          % global force vector
+    F = fsparse(dof(nx*ny-nx+1,6)',1,P,[ndof,1]);                          % global force vector (resultant forces on the subvolumes' faces)
     StiffnessAssemblage = @(sK) fsparse(iK(:),jK(:),sK(:),[ndof,ndof]);
 end
 supp = unique([dof(1:nx:end-nx+1,7);dof(nx,2)]);                           % fixed degrees of freedom - supporting conditions
@@ -56,17 +56,17 @@ for i = 1:length(penal(:))
     xPhys = x;
     fprintf('\nPenalty factor: %1.2f\n',penal(i));                         % print current penalty factor
     while (change > 0.01), loop = loop+1;                                  % start optmization process
-        %_____________________________________FINITE-VOLUME THEORY ANAHSIS
+        %_____________________________________FINITE-VOLUME THEORY ANALYSIS
         Mat = MatInt(penal(i),xPhys);                                      % material interpolation
         E = Mat{1}; dEdx = Mat{2};
         sK = K0(:)*E(:)';                                                  % stiffness interpolation
-        K = StiffnessAssemblage(sK); K=(K+K')/2;                           % assemblage of stiffness matrix
+        K = StiffnessAssemblage(sK); K=(K+K')/2;                           % assemblage of the stiffness matrix
         U(fdof) = K(fdof,fdof)\F(fdof);                                    % compute global displacements
-        %________________________________________COMPLIENCE AND SENSITIVITY
+        %_______________________________________COMPLIANCE AND SENSITIVITY
         fe = reshape(sum((U(dof)*K0).*U(dof),2),nx,ny);
         f  = sum(sum(E.*fe));                                              % objective function: compliance
         dfdx = -dEdx.*fe;                                                  % sensitivity
-        %_____________________________________MODIFICATION OF SENSITIVITIES
+        %_________________________________MODIFICATION OF THE SENSITIVITIES
         sens = sensitivity(x,dfdx,dvdx);
         dfdx(:) = sens{1};
         dvdx(:) = sens{2};
@@ -124,9 +124,9 @@ ab = (sumB*A1*a)\(sumB*A1);
 Ab = A1*(eye(8)-a*ab);
 K0 = B*Ab;
 K0 = [K0(1:2,:)*l;K0(3:4,:)*h;K0(5:6,:)*l;K0(7:8,:)*h];
-%____________________________________________________________PREPARE FILTER
+%_____________________________________________________PREPARING THE FILTER
 function [H,Hs] = Filtering(l,h,nx,ny,neig)
-neig = round(neig,0);                                                      % Enforce that neig variable to be an integer
+neig = round(neig,0);                                                      % Enforcing the neig variable to be an integer
 rmin = neig*sqrt(l^2+h^2);                                                 % radius of the filter
 iH = ones(nx*ny*(2*(neig-1)+1)^2,1);
 jH = ones(size(iH));
