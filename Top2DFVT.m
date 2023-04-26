@@ -151,7 +151,7 @@ else
     sH = ones(size(iH));
 end
 H = sparse(iH,jH,sH); Hs = sum(H,2);
-%_________________________________________HANDLE FOR PLOTTING DESIGN DOMAIN
+%_________________________________________PLOTTING THE OPTIMIZED TOPOLOGY
 function fig = PlotTopology(l,h,x)
 [nx,ny] = size(x);
 [k,face,vert] = deal(1,zeros(nx*ny,4),zeros(4*nx*ny,2));
@@ -165,7 +165,7 @@ for j = 1:ny
 end
 fig = patch('Faces',face,'Vertices',vert,'FaceVertexCData',1-x(:),...
     'FaceColor','flat','EdgeColor','none');
-%________________________________________________________PRINT PROCESS TIME
+%_____________________________________________PRINTING THE PROCESSING TIME
 function PrintTime(t)
 H = fix(t/3600); M = fix((t-3600*H)/60); S = fix((t-3600*H-60*M));
 disp(['Timing of iterative process: ' num2str(H) 'h ' num2str(M) 'min '...
