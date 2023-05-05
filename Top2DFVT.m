@@ -16,7 +16,7 @@ fig   = PlotTopology(l,h,x);                                               % opt
 axis equal off tight; colormap(gray); caxis([0 1]);                        % plot configuration
 %_____________________________________PREPARE FINITE-VOLUME THEORY ANALYSIS
 [dof,ndof,iK,jK] = DOFassembly(nx,ny);                                     % degrees of freedom
-K0 = LocalStiffMatrix(nu,l,h);                                             % local stiffness matrix
+K0 = LocalStiffMatrix(nu,l,h); K0 = (K0+K0')/2                             % local stiffness matrix
 %______________________________________________________PENALIZATION METHODS
 if (strcmp(model,'SIMP'))
     MatInt = @(p,x) {Emin+(E0-Emin)*x.^p,p*(E0-Emin)*x.^(p-1)};            % SIMP - Solid Isotropic Material with Penalization
@@ -60,7 +60,7 @@ for i = 1:length(penal(:))
         Mat = MatInt(penal(i),xPhys);                                      % material interpolation
         E = Mat{1}; dEdx = Mat{2};
         sK = K0(:)*E(:)';                                                  % stiffness interpolation
-        K = StiffnessAssemblage(sK); K=(K+K')/2;                           % assemblage of the stiffness matrix
+        K = StiffnessAssemblage(sK);                                       % assemblage of the stiffness matrix
         U(fdof) = K(fdof,fdof)\F(fdof);                                    % compute global displacements
         %_______________________________________COMPLIANCE AND SENSITIVITY
         fe = reshape(sum((U(dof)*K0).*U(dof),2),nx,ny);
