@@ -3,8 +3,8 @@ Top2DFVT is an open source Matlab implementation for topology optimization of tw
 
 # Syntax
 
-* **Top2DFVT(*L*, *H*, *nx*, *ny*, *volfrac*, *penal*, *neig*, *ft*)** Performs topology optimization algorithm on the reference domain defined by the horizontal length, *L*, and vertical lenght, *H*, using a discretization of *nx* horizontal subvolumes, and *ny* vertical subvolumes, where *volfrac* is the prescribed volume fraction, *penal* is the penalty factor, *neig* is the filter neighborhood taken in consideration to evaluate filter weight function, *ft* is the variable that specifies the adopted filter, sensitivity (*ft = 1*) or density filter (*ft = 2*), and other default parameters.
-* **Top2DFVT(*L*, *H*, *nx*, *ny*, *volfrac*, *penal*, *neig*, *ft*, *varargin*)** Performs topology optimization using *L*, *H*, *nx*, *ny*, *volfrac*, *penal*, *neig*, *ft*, and the *fsparse* routine when *varargin = 'fast'*.
+* **Top2DFVT(*L*, *H*, *nx*, *ny*, *volfrac*, *penal*, *frad*, *ft*)** Performs topology optimization algorithm on the reference domain defined by the horizontal length, *L*, and vertical lenght, *H*, using a discretization of *nx* horizontal subvolumes, and *ny* vertical subvolumes, where *volfrac* is the prescribed volume fraction, *penal* is the penalty factor, *frad* is the filter radius, *ft* is the variable that specifies the adopted filter, sensitivity (*ft = 1*), density filter (*ft = 2*), or no filter (*ft = 0*), and other default parameters.
+* **Top2DFVT(*L*, *H*, *nx*, *ny*, *volfrac*, *penal*, *frad*, *ft*, *varargin*)** Performs topology optimization using *L*, *H*, *nx*, *ny*, *volfrac*, *penal*, *neig*, *ft*, and the *fsparse* routine when *varargin = 'fast'*.
 
  ### Table 1: Inputs parameters' declaration
 --------------------------------------------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ The following examples show how **Top2DFVT** can be used. Some input values are 
   *  Example 1:
     Optimize a cantilever beam using default values of optional inputs, as presented in Table 1, and the sensitivity filter taking the adjacent neighborhood
 
-     - **Top2DFVT(100,50,202,101,0.4,1:0.5:4,1,1)** or **Top2DFVT(100,50,202,101,0.4,1:0.5:4,1,1,'fast')**
+     - **Top2DFVT(100,50,202,101,0.4,1:0.5:4,0.71,1)** or **Top2DFVT(100,50,202,101,0.4,1:0.5:4,0.71,1,'fast')**
      
      where the supporting conditions are set up as
      
@@ -38,16 +38,16 @@ The following examples show how **Top2DFVT** can be used. Some input values are 
      
      **F = sparse(dof(nx\*(ny+1)/2,4)',1,P,ndof,1)**
      
-     - For the density filter approach: **Top2DFVT(100,50,202,101,0.4,1:0.5:4,1,2)** or **Top2DFVT(100,50,202,101,0.4,1:0.5:4,1,2,'fast')**
+     - For the density filter approach: **Top2DFVT(100,50,202,101,0.4,1:0.5:4,0.71,2)** or **Top2DFVT(100,50,202,101,0.4,1:0.5:4,0.71,2,'fast')**
      
-     - For the no filter approach: **Top2DFVT(100,50,202,101,0.4,1:0.5:4,0,1)** or **Top2DFVT(100,50,202,101,0.4,1:0.5:4,0,1,'fast')**
+     - For the no filter approach: **Top2DFVT(100,50,202,101,0.4,1:0.5:4,[],0)** or **Top2DFVT(100,50,202,101,0.4,1:0.5:4,[],0,'fast')**
 
-Obs: For the no filter approach employing the SIMP material interpolation method, the *eta* parameter is adjusted for 1/2.6 to avoid the oscillatory phenomenon.
+Obs: For the no filter approach employing the SIMP material interpolation method, the *eta* parameter is adjusted to 1/2.6 to avoid the oscillatory phenomenon.
 
   *  Example 2:
      Optimize a half-MBB beam using default values of optional inputs and the sensitivity filter, taking the two neighborhoods around the subvolume
 
-     - **Top2DFVT(150,50,240,80,0.5,1:0.5:4,2,1)** or **Top2DFVT(150,50,240,80,0.5,1:0.5:4,2,1,'fast')**
+     - **Top2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,1)** or **Top2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,1,'fast')**
      
      where the supporting conditions are set up as
      
@@ -57,11 +57,11 @@ Obs: For the no filter approach employing the SIMP material interpolation method
      
      **F = sparse(dof(nx\*ny-nx+1,6)',1,P,ndof,1)**
      
-     - For the density filter approach: **Top2DFVT(150,50,240,80,0.5,1:0.5:4,2,2)** or **Top2DFVTTop2DFVT(150,50,240,80,0.5,1:0.5:4,2,2,'fast')**
+     - For the density filter approach: **Top2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,2)** or **Top2DFVTTop2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,2,'fast')**
      
-     - For the no filter approach: **Top2DFVT(150,50,240,80,0.5,1:0.5:4,0,1)** or **Top2DFVT(150,50,240,80,0.5,1:0.5:4,0,1,'fast')**
+     - For the no filter approach: **Top2DFVT(150,50,240,80,0.5,1:0.5:4,[],0)** or **Top2DFVT(150,50,240,80,0.5,1:0.5:4,[],0,'fast')**
 
-Obs: For the SIMP approaches, the *eta* parameter is adjusted for 1/2.6 to avoid the oscillatory phenomenon.
+Obs: For the SIMP approaches, the *eta* parameter is adjusted to 1/2.6 to avoid the oscillatory phenomenon.
 
 ## Supporting Open-Source Codes
 **Top2DFVT** utilizes other open-source codes, such as [fsparse](https://github.com/stefanengblom/stenglib.git) routine by
