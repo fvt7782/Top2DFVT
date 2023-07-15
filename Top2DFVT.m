@@ -1,13 +1,14 @@
-% TOPOLOGY OPTIMIZATION OF STRUCTURES BY ZEROTH ORDER FINITE-VOLUME THEORY
-function Top2DFVT(L,H,nx,ny,volfrac,penal,neig,ft,varargin)
+% TOPOLOGY OPTIMIZATION OF 2D STRUCTURES BY ZEROTH ORDER FINITE-VOLUME THEORY
+function Top2DFVT(L,H,nx,ny,volfrac,penal,frad,ft,varargin)
 %______________________________________________________________USER-DEFINED
 P     = -1;                                                                % applied concentrated load
 E0    =  1;                                                                % Young's modulus of solid material
 Emin  = E0*(1e-9);                                                         % soft (void) material stiffness to avoid singularity
 nu    =  0.3;                                                              % Poisson ratio
-model = 'RAMP';                                                            % penalization method: "SIMP" or "RAMP"
-eta   = 1/2;                                                               % damping factor
+model = 'SIMP';                                                            % penalization method: "SIMP" or "RAMP"
+eta   = 1/2.6;                                                             % damping factor
 move  = 0.2;                                                               % move-limit
+maxit = 100;                                                               % maximum number of iterations
 %__________________________________INITIALIZATION OF DESIGN VARIABLE VECTOR
 l = L/nx; h = H/ny;                                                        % subvolume dimensions
 x = repmat(volfrac,nx,ny);                                                 % regular distribution of density
@@ -26,41 +27,44 @@ elseif (strcmp(model,'RAMP'))
 end
 %__________________________ASSEMBLY LOAD VECTOR AND GLOBAL STIFFNESS MATRIX
 if (isempty(varargin))
-    F = sparse(dof(nx*ny-nx+1,6)',1,P,ndof,1);                             % global force vector (resultant forces on the subvolumes' faces)
-    StiffnessAssemblage = @(sK) sparse(iK(:),jK(:),sK(:),ndof,ndof);
+    F = sparse(dof(nx*(ny+1)/2,4)',1,P,ndof,1);                            % global force vector (resultant forces on the subvolumes' faces)
+    StiffnessAssemblage = @(sK) sparse(iK(:),jK(:),sK(:),ndof,ndof);       % stiffness matrix assemblage
 elseif (strcmp(varargin,'fast'))
-    if ~exist("fsparse\")                                                  % logical test to check if the fsparse folder is installed
+    if (~exist("fsparse\"))                                                % logical test to check if the fsparse folder is installed
         warning('check if the fsparse is correctly set up');               % display message
         return
     end
     addpath(genpath('./fsparse'));                                         % set fsparse folder
-    F = fsparse(dof(nx*ny-nx+1,6)',1,P,[ndof,1]);                          % global force vector (resultant forces on the subvolumes' faces)
-    StiffnessAssemblage = @(sK) fsparse(iK(:),jK(:),sK(:),[ndof,ndof]);
+    F = fsparse(dof(nx*(ny+1)/2,4)',1,P,[ndof,1]);                         % global force vector (resultant forces on the subvolumes' faces)
+    StiffnessAssemblage = @(sK) fsparse(iK(:),jK(:),sK(:),[ndof,ndof]);    % stiffness matrix assemblage
 end
-supp = unique([dof(1:nx:end-nx+1,7);dof(nx,2)]);                           % fixed degrees of freedom - supporting conditions
+supp = unique(dof(1:nx:end-nx+1,7:8));                                     % fixed degrees of freedom - supporting conditions
 fdof = setdiff(dof(:),supp(:));                                            % free degrees of freedom
 %_____IMPLICIT FUNCTIONS TO MODIFY THE SUBVOLUME SENSITIVITIES OR DENSITIES
-[H,Hs] = Filtering(l,h,nx,ny,neig);
-if (ft == 1) % Sensitivity filter
+if (ft == 0) %
+    sensitivity = @(x,dfdx,dvdx){dfdx,dvdx};
+    density = @(x) x;
+elseif (ft == 1) % Sensitivity filter
+    [H,Hs] = Filtering(l,h,nx,ny,frad);
     sensitivity = @(x,dfdx,dvdx){H*(x(:).*dfdx(:))./Hs./max(1e-3,x(:)),dvdx};
     density = @(x) x;
 elseif (ft == 2) % Density filter
-    sensitivity = @(x,dfdx,dvdx){(H*dfdx(:))./Hs,(H*dvdx(:))./Hs};
+    [H,Hs] = Filtering(l,h,nx,ny,frad);
+    sensitivity = @(x,dfdx,dvdx){(H*dfdx(:)./Hs),H*(dvdx(:)./Hs)};
     density = @(x) (H*x(:))./Hs;
 end
 %______________________________________________________OPTIMIZATION PROCESS
 U = zeros(ndof,1);
 tic
 for i = 1:length(penal(:))
-    change = 1; loop = 0;
-    xPhys = x;
+    [change,loop,xPhys] = deal(1, 0, x);
     fprintf('\nPenalty factor: %1.2f\n',penal(i));                         % print current penalty factor
-    while (change > 0.01), loop = loop+1;                                  % start optmization process
+    while (change > 0.01 && loop < maxit), loop = loop+1;                  % start optmization process
         %_____________________________________FINITE-VOLUME THEORY ANALYSIS
         Mat = MatInt(penal(i),xPhys);                                      % material interpolation
         E = Mat{1}; dEdx = Mat{2};
         sK = K0(:)*E(:)';                                                  % stiffness interpolation
-        K = StiffnessAssemblage(sK); K = (K=K')/2                          % assemblage of the stiffness matrix
+        K = StiffnessAssemblage(sK); K = (K+K')/2;                         % assemblage of the stiffness matrix
         U(fdof) = K(fdof,fdof)\F(fdof);                                    % compute global displacements
         %_______________________________________COMPLIANCE AND SENSITIVITY
         fe = reshape(sum((U(dof)*K0).*U(dof),2),nx,ny);
@@ -71,26 +75,26 @@ for i = 1:length(penal(:))
         dfdx(:) = sens{1};
         dvdx(:) = sens{2};
         %_________________UPDATE OF DESIGN VARIABLES AND PHYSICAL DENSITIES
-        xOpt = x;
-        [xUpp, xLow] = deal (xOpt + move, xOpt - move);                    % Upp. & low. limits
-        OcC = xOpt.*((-dfdx./dvdx).^eta);                                  % Opt. parameter
-        inL = [0, mean(OcC)/volfrac];                                      % Lag. Mul. range
+        [xUpp, xLow] = deal (x + move, x - move);                          % Upp. & low. limits
+        OcC = x.*((-dfdx./dvdx).^eta);                                     % Opt. parameter
+        inL = [0, mean(OcC(:))/volfrac];                                      % Lag. Mul. range
         while (inL(2)-inL(1))/(inL(2)+inL(1))> 1e-3
             lmid = 0.5*(inL(2)+ inL(1));
-            x = max(0,max(xLow,min(1,min(xUpp,OcC/lmid))));
-            if mean(x(:))>volfrac, inL(1) = lmid; else, inL(2) = lmid; end
+            xnew = max(0,max(xLow,min(1,min(xUpp,OcC/lmid))));
+            if mean(xnew(:))>volfrac, inL(1) = lmid; else, inL(2) = lmid; end
         end
-        xPhys(:) = density(x);
-        change = max(abs(xOpt(:)-x(:)));
+        xPhys(:) = density(xnew);
+        change = max(abs(xnew(:)-x(:)));
+        x = xnew;
         %_____________________________________________________PRINT RESULTS
         fprintf('It: %i\tObjec.: %1.4f\tVol.: %1.3f\tChange: %1.3f\n',...
             loop,f,mean(xPhys(:)),change);
     end
-    %_________________________________________PRINT RESULTS AND PLOT DESIGN
-    set(fig,'FaceColor','flat','CData',1-xPhys(:)); drawnow
 end
-t = toc; clearvars -except t;
-PrintTime(t);
+%___________________________________________________________PLOT DESIGN
+set(fig,'FaceColor','flat','CData',1-xPhys(:)); drawnow
+clearvars;
+PrintTime(toc);
 %_______________________________________________ORDENING DEGREES OF FREEDOM
 function [dof,ndof,iK,jK] = DOFassembly(nx,ny)
 [i,j] = ndgrid(1:nx,1:ny);
@@ -125,32 +129,31 @@ Ab = A1*(eye(8)-a*ab);
 K0 = B*Ab;
 K0 = [K0(1:2,:)*l;K0(3:4,:)*h;K0(5:6,:)*l;K0(7:8,:)*h];
 %_____________________________________________________PREPARING THE FILTER
-function [H,Hs] = Filtering(l,h,nx,ny,neig)
-neig = round(neig,0);                                                      % Enforcing the neig variable to be an integer
-rmin = neig*sqrt(l^2+h^2);                                                 % radius of the filter
-iH = ones(nx*ny*(2*(neig-1)+1)^2,1);
-jH = ones(size(iH));
-if (neig ~= 0)
-    sH = zeros(size(iH));
-    k = 0;
-    for j1 = 1:ny
-        for i1 = 1:nx
-            e1 = (j1-1)*nx+i1;
-            for j2 = max(j1-neig,1):min(j1+neig,ny)
-                for i2 = max(i1-neig,1):min(i1+neig,nx)
-                    e2 = (j2-1)*nx+i2;
-                    k = k+1;
-                    iH(k) = e1; jH(k) = e2;
-                    dx = (i1-i2)*l; dy = (j1-j2)*h;
-                    sH(k) = max(0,rmin-sqrt(dx^2+dy^2));
-                end
+function [H,Hs] = Filtering(l,h,nx,ny,frad)
+neig = ceil(frad);
+numSubvolumes = nx * ny * (2 * (neig - 1) + 1)^2;
+iH = ones(numSubvolumes, 1);
+jH = ones(numSubvolumes, 1);
+sH = zeros(numSubvolumes, 1);
+k = 0;
+% Compute filter values
+for j1 = 1:ny
+    for i1 = 1:nx
+        e1 = (j1 - 1) * nx + i1;
+        for j2 = max(j1 - neig, 1):min(j1 + neig, ny)
+            for i2 = max(i1 - neig, 1):min(i1 + neig, nx)
+                e2 = (j2 - 1) * nx + i2;
+                k = k + 1;
+                iH(k) = e1;
+                jH(k) = e2;
+                sH(k) = max(0,frad-sqrt(((i1-i2)*l)^2+((j1-j2)*h)^2));
             end
         end
     end
-else
-    sH = ones(size(iH));
 end
-H = sparse(iH,jH,sH); Hs = sum(H,2);
+% Create sparse matrix and compute row sums
+H = sparse(iH, jH, sH);
+Hs = sum(sparse(iH, jH, sH), 2);
 %_________________________________________PLOTTING THE OPTIMIZED TOPOLOGY
 function fig = PlotTopology(l,h,x)
 [nx,ny] = size(x);
