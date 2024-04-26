@@ -68,4 +68,4 @@ Obs: For the SIMP approaches, the *eta* parameter is adjusted to 1/2.6 to avoid 
 [Engblom and Lukarski](https://doi.org/10.1016/j.parco.2016.04.001), for fast convergence when medium and large-scale problems are analyzed.
 
 ## To Cite
-If you find this code helpful in your work, please cite [this paper](https://doi.org/10.1016/j.mechrescom.2020.103581)
+If you find this code helpful in your work, please cite [this paper](https://www.researchsquare.com/article/rs-4284571/v1)
