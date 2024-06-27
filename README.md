@@ -57,7 +57,7 @@ Obs: For the no filter approach employing the SIMP material interpolation method
      
      **F = sparse(dof(nx\*ny-nx+1,6)',1,P,ndof,1)**
      
-     - For the density filter approach: **Top2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,2)** or **Top2DFVTTop2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,2,'fast')**
+     - For the density filter approach: **Top2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,2)** or **Top2DFVT(150,50,240,80,0.5,1:0.5:4,1.42,2,'fast')**
      
      - For the no filter approach: **Top2DFVT(150,50,240,80,0.5,1:0.5:4,[],0)** or **Top2DFVT(150,50,240,80,0.5,1:0.5:4,[],0,'fast')**
 
